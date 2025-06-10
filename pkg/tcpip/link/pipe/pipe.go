@@ -57,7 +57,10 @@ type Endpoint struct {
 }
 
 func (e *Endpoint) deliverPackets(pkts stack.PacketBufferList) {
-	if !e.linked.IsAttached() {
+	e.linked.mu.RLock()
+	d := e.linked.dispatcher
+	e.linked.mu.RUnlock()
+	if d == nil {
 		return
 	}
 
@@ -68,9 +71,6 @@ func (e *Endpoint) deliverPackets(pkts stack.PacketBufferList) {
 		newPkt := stack.NewPacketBuffer(stack.PacketBufferOptions{
 			Payload: pkt.ToBuffer(),
 		})
-		e.linked.mu.RLock()
-		d := e.linked.dispatcher
-		e.linked.mu.RUnlock()
 		d.DeliverNetworkPacket(pkt.NetworkProtocolNumber, newPkt)
 		newPkt.DecRef()
 	}
