@@ -185,6 +185,10 @@ func (d *readVDispatcher) release() {
 	d.mgr.close()
 }
 
+func (d *readVDispatcher) close() {
+	d.StopFD.Close()
+}
+
 // dispatch reads one packet from the file descriptor and dispatches it.
 func (d *readVDispatcher) dispatch() (bool, tcpip.Error) {
 	n, errno := rawfile.BlockingReadvUntilStopped(d.EFD, d.fd, d.buf.nextIovecs())
@@ -273,6 +277,10 @@ func (d *recvMMsgDispatcher) release() {
 		iov.release()
 	}
 	d.mgr.close()
+}
+
+func (d *recvMMsgDispatcher) close() {
+	d.StopFD.Close()
 }
 
 // recvMMsgDispatch reads more than one packet at a time from the file

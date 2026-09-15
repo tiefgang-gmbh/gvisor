@@ -28,6 +28,7 @@ import (
 //
 // +stateify savable
 type StopFD struct {
+	// EFD is the eventfd, or -1 once closed.
 	EFD int
 }
 
@@ -43,6 +44,9 @@ func New() (StopFD, error) {
 // Stop writes to the eventfd and notifies the dispatcher to stop. It does not
 // block.
 func (sf *StopFD) Stop() {
+	if sf.EFD < 0 {
+		return
+	}
 	increment := []byte{1, 0, 0, 0, 0, 0, 0, 0}
 	if n, err := unix.Write(sf.EFD, increment); n != len(increment) || err != nil {
 		// There are two possible errors documented in eventfd(2) for writing:
@@ -51,4 +55,14 @@ func (sf *StopFD) Stop() {
 		// thus no EAGAIN.
 		panic(fmt.Sprintf("write(EFD) = (%d, %s), want (%d, nil)", n, err, len(increment)))
 	}
+}
+
+// Close releases the eventfd. It must not be called while a dispatcher may
+// still be polling the eventfd. Calling it more than once is a no-op.
+func (sf *StopFD) Close() {
+	if sf.EFD < 0 {
+		return
+	}
+	unix.Close(sf.EFD)
+	sf.EFD = -1
 }
